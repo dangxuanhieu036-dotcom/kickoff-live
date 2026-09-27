@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>现场大屏</title>
+<style>
+  :root {
+    --green: #0b3d2e;
+    --gold: #d4af37;
+    --gold-2: #f0d47a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(212,175,55,.14), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(212,175,55,.10), transparent 60%),
+      linear-gradient(155deg, #07251b 0%, var(--green) 50%, #0e4532 100%);
+    color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  /* 顶部标题 */
+  header { text-align: center; padding: 3.2vh 20px 1.6vh; position: relative; }
+  header .en { color: rgba(212,175,55,.75); font-size: 1.4vh; letter-spacing: 10px; margin-bottom: 1vh; }
+  header h1 {
+    font-size: 5.2vh; letter-spacing: 14px; color: var(--gold);
+    text-shadow: 0 0 24px rgba(212,175,55,.45);
+    font-weight: 800;
+  }
+  header .sub { margin-top: 1vh; font-size: 2vh; letter-spacing: 6px; color: rgba(255,255,255,.85); }
+  header::after {
+    content: ""; display: block; margin: 1.8vh auto 0;
+    width: 46vw; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  /* 主体两栏 */
+  main { flex: 1; display: flex; gap: 3vw; padding: 1vh 4vw 2vh; min-height: 0; }
+  .col-left { width: 30%; display: flex; flex-direction: column; align-items: center; gap: 2.6vh; }
+  .col-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .qr-card {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(212,175,55,.45);
+    border-radius: 18px;
+    padding: 2vh 2vw;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  }
+  .qr-card img { width: 24vh; height: 24vh; border-radius: 10px; display: block; }
+  .qr-card .hint { margin-top: 1.4vh; font-size: 1.9vh; letter-spacing: 3px; color: var(--gold-2); }
+  .qr-card .hint2 { margin-top: .5vh; font-size: 1.4vh; color: rgba(255,255,255,.55); }
+
+  .stats { display: flex; gap: 1.6vw; width: 100%; }
+  .stat {
+    flex: 1;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(212,175,55,.35);
+    border-radius: 16px;
+    padding: 1.8vh 1vw;
+    text-align: center;
+  }
+  .stat .num { font-size: 4.6vh; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .stat .num small { font-size: 1.8vh; font-weight: 400; margin-left: 4px; }
+  .stat .lab { font-size: 1.6vh; color: rgba(255,255,255,.7); letter-spacing: 2px; margin-top: .4vh; }
+
+  /* 申报列表 */
+  .list-title {
+    font-size: 2vh; letter-spacing: 4px; color: var(--gold-2);
+    border-left: 4px solid var(--gold); padding-left: 12px; margin-bottom: 1.2vh;
+  }
+  #list { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 1vh; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(212,175,55,.22);
+    border-radius: 12px;
+    padding: 1.3vh 1.4vw;
+    font-size: 2.2vh;
+    animation: slideIn .55s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .row .nm { letter-spacing: 2px; font-weight: 600; }
+  .row .tg { color: var(--gold); font-weight: 700; }
+  .row .tg small { color: rgba(255,255,255,.6); font-weight: 400; margin-left: 4px; font-size: 1.5vh; }
+  .empty { color: rgba(255,255,255,.4); font-size: 1.8vh; padding: 2vh; text-align: center; letter-spacing: 2px; }
+  @keyframes slideIn {
+    0% { transform: translateY(-24px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  /* 主持人控制条 */
+  .controls {
+    position: fixed; right: 18px; bottom: 14px;
+    display: flex; gap: 10px; opacity: .28; transition: opacity .25s; z-index: 40;
+  }
+  .controls:hover { opacity: 1; }
+  .controls button, .controls a {
+    font-size: 14px; letter-spacing: 1px; text-decoration: none;
+    color: var(--green); background: linear-gradient(135deg, var(--gold-2), var(--gold));
+    border: none; border-radius: 10px; padding: 10px 18px; cursor: pointer; font-weight: 700;
+  }
+  .controls a { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(212,175,55,.4); }
+  .controls button[disabled] { opacity: .5; cursor: default; }
+
+  /* 中奖覆盖层 */
+  #overlay {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(4, 20, 14, .88);
+    backdrop-filter: blur(6px);
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+  }
+  #overlay.show { display: flex; }
+  #overlay .cap { font-size: 2.4vh; letter-spacing: 8px; color: var(--gold-2); margin-bottom: 3vh; }
+  #rolling {
+    font-size: 11vh; font-weight: 900; letter-spacing: 12px; color: #fff;
+    text-shadow: 0 0 40px rgba(212,175,55,.5);
+    min-height: 14vh;
+  }
+  #rolling.final {
+    color: var(--gold);
+    animation: winPop .8s cubic-bezier(.2,1.4,.4,1);
+  }
+  @keyframes winPop {
+    0% { transform: scale(.4); opacity: 0; }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #overlay .tip { margin-top: 4vh; font-size: 1.6vh; color: rgba(255,255,255,.5); letter-spacing: 2px; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="en">SEASON LAUNCH · TARGET DECLARATION</div>
+    <h1 id="title">旺季营销启动会</h1>
+    <div class="sub" id="subtitle">目标申报</div>
+  </header>
+
+  <main>
+    <section class="col-left">
+      <div class="qr-card">
+        <img id="qr" alt="扫码申报二维码" />
+        <div class="hint">微信扫码 · 申报目标</div>
+        <div class="hint2" id="qrurl"></div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="num" id="count">0<small>人</small></div>
+          <div class="lab">已申报人数</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="total">0<small>万元</small></div>
+          <div class="lab">累计目标保费</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="col-right">
+      <div class="list-title">实时申报榜</div>
+      <div id="list"><div class="empty">等待现场伙伴扫码申报…</div></div>
+    </section>
+  </main>
+
+  <div class="controls">
+    <button id="drawBtn">🎁 抽奖</button>
+    <a href="/api/export/declarations.xlsx" download>导出申报名单</a>
+    <a href="/api/export/winners.xlsx" download>导出中奖名单</a>
+  </div>
+
+  <div id="overlay">
+    <div class="cap">🎉 幸运抽奖 · 恭喜中奖 🎉</div>
+    <div id="rolling">—</div>
+    <div class="tip">点击屏幕任意处关闭</div>
+  </div>
+
+<script src="/config.js"></script>
+<script>
+  document.getElementById('title').textContent = APP_CONFIG.title;
+  document.getElementById('subtitle').textContent = APP_CONFIG.subtitle;
+
+  const listEl = document.getElementById('list');
+  const countEl = document.getElementById('count');
+  const totalEl = document.getElementById('total');
+  const overlay = document.getElementById('overlay');
+  const rolling = document.getElementById('rolling');
+  const drawBtn = document.getElementById('drawBtn');
+  let names = []; // 用于抽奖滚动动画
+
+  function fmt(n) { return Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 2 }); }
+
+  function renderStats(count, total) {
+    countEl.innerHTML = count + '<small>人</small>';
+    totalEl.innerHTML = fmt(total) + '<small>万元</small>';
+  }
+
+  function addRow(name, target, animate) {
+    const empty = listEl.querySelector('.empty');
+    if (empty) empty.remove();
+    const div = document.createElement('div');
+    div.className = 'row';
+    if (animate === false) div.style.animation = 'none';
+    div.innerHTML = '<span class="nm">' + escapeHtml(name) + '</span><span class="tg">' +
+      fmt(target) + '<small>万元</small></span>';
+    listEl.prepend(div);
+    while (listEl.children.length > 12) listEl.removeChild(listEl.lastChild);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // 初始状态
+  fetch('/api/state').then((r) => r.json()).then((s) => {
+    renderStats(s.count, s.totalTarget);
+    names = s.entries.map((e) => e.name);
+    s.entries.slice().reverse().forEach((e) => addRow(e.name, e.target, false));
+  });
+
+  // 二维码
+  fetch('/api/qr').then((r) => r.json()).then((j) => {
+    document.getElementById('qr').src = j.dataUrl;
+    document.getElementById('qrurl').textContent = j.url;
+  });
+
+  // SSE 实时同步
+  const es = new EventSource('/api/events');
+  es.addEventListener('entry', (ev) => {
+    const d = JSON.parse(ev.data);
+    renderStats(d.count, d.totalTarget);
+    addRow(d.entry.name, d.entry.target, true);
+    names = d.entries.map((e) => e.name);
+  });
+  es.addEventListener('winner', (ev) => {
+    const d = JSON.parse(ev.data);
+    playDraw(d.winner.name, d.winner.target);
+  });
+
+  // 抽奖动画：名字快速滚动后定格中奖者
+  let drawing = false;
+  function playDraw(winnerName, winnerTarget) {
+    drawing = true;
+    drawBtn.disabled = true;
+    overlay.classList.add('show');
+    rolling.classList.remove('final');
+    const pool = names.length ? names : [winnerName];
+    let ticks = 0;
+    const totalTicks = 34;
+    const timer = setInterval(() => {
+      rolling.textContent = pool[Math.floor(Math.random() * pool.length)];
+      ticks++;
+      if (ticks >= totalTicks) {
+        clearInterval(timer);
+        rolling.textContent = winnerName;
+        rolling.classList.add('final');
+        drawing = false;
+        drawBtn.disabled = false;
+      }
+    }, 40 + ticks * ticks * 0.18); // 逐渐减速
+  }
+
+  drawBtn.addEventListener('click', async () => {
+    if (drawing) return;
+    drawBtn.disabled = true;
+    try {
+      const r = await fetch('/api/draw', { method: 'POST' });
+      if (!r.ok) {
+        const j = await r.json();
+        alert(j.error || '抽奖失败');
+        drawBtn.disabled = false;
+      }
+      // 成功时由 SSE 'winner' 事件驱动动画
+    } catch {
+      alert('网络异常，请重试');
+      drawBtn.disabled = false;
+    }
+  });
+
+  overlay.addEventListener('click', () => overlay.classList.remove('show'));
+</script>
+</body>
+</html>
