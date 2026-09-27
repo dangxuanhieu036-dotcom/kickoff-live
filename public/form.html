@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>目标申报</title>
+<style>
+  :root {
+    --green: #0b3d2e;
+    --green-2: #12503c;
+    --gold: #d4af37;
+    --gold-2: #f0d47a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(160deg, #082a20 0%, var(--green) 55%, #0f4634 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 20px 48px;
+  }
+  .badge {
+    border: 1px solid rgba(212,175,55,.6);
+    color: var(--gold-2);
+    font-size: 12px;
+    letter-spacing: 4px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: var(--gold);
+    text-shadow: 0 2px 12px rgba(212,175,55,.35);
+    margin-bottom: 6px;
+  }
+  .sub { font-size: 13px; color: rgba(255,255,255,.75); letter-spacing: 2px; margin-bottom: 28px; }
+  form {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(212,175,55,.35);
+    border-radius: 16px;
+    padding: 24px 20px;
+    backdrop-filter: blur(4px);
+  }
+  label { display: block; font-size: 14px; color: var(--gold-2); margin: 0 0 8px; letter-spacing: 1px; }
+  input {
+    width: 100%;
+    padding: 13px 14px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(0,0,0,.25);
+    color: #fff;
+    outline: none;
+    margin-bottom: 18px;
+  }
+  input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,.2); }
+  input::placeholder { color: rgba(255,255,255,.35); }
+  button {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: var(--green);
+    background: linear-gradient(135deg, var(--gold-2), var(--gold));
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(212,175,55,.35);
+  }
+  button:active { transform: scale(.98); }
+  button[disabled] { opacity: .6; }
+  .err { color: #ff9a8a; font-size: 13px; min-height: 18px; margin: -10px 0 10px; }
+  .done {
+    display: none;
+    text-align: center;
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(212,175,55,.5);
+    border-radius: 16px;
+    padding: 48px 24px;
+  }
+  .done .tick {
+    width: 72px; height: 72px; margin: 0 auto 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--gold-2), var(--gold));
+    color: var(--green);
+    font-size: 40px; line-height: 72px;
+    animation: pop .5s ease;
+  }
+  .done h2 { color: var(--gold); letter-spacing: 4px; font-size: 22px; margin-bottom: 10px; }
+  .done p { color: rgba(255,255,255,.8); font-size: 14px; line-height: 1.8; }
+  @keyframes pop { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+</style>
+</head>
+<body>
+  <div class="badge">TARGET DECLARATION</div>
+  <h1 id="title">旺季营销启动会</h1>
+  <div class="sub" id="subtitle">目标申报</div>
+
+  <form id="form" autocomplete="off">
+    <label for="name">姓名</label>
+    <input id="name" name="name" placeholder="请输入姓名" maxlength="30" required />
+
+    <label for="workplace">职场</label>
+    <input id="workplace" name="workplace" placeholder="请输入所在职场" maxlength="50" required />
+
+    <label for="sessions">10月10日—20日计划参加平台场次</label>
+    <input id="sessions" name="sessions" type="number" min="1" step="1" placeholder="例如：5" required />
+
+    <label for="target">目标保费（万元）</label>
+    <input id="target" name="target" type="number" min="0.01" step="0.01" placeholder="例如：50" required />
+
+    <div class="err" id="err"></div>
+    <button type="submit" id="btn">提交申报</button>
+  </form>
+
+  <div class="done" id="done">
+    <div class="tick">✓</div>
+    <h2>申报成功</h2>
+    <p>您的目标已同步至现场大屏<br />祝您旺季开门红，达成目标！</p>
+  </div>
+
+<script src="/config.js"></script>
+<script>
+  document.getElementById('title').textContent = APP_CONFIG.title;
+  document.getElementById('subtitle').textContent = APP_CONFIG.subtitle;
+
+  const form = document.getElementById('form');
+  const err = document.getElementById('err');
+  const btn = document.getElementById('btn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.textContent = '';
+    btn.disabled = true;
+    const payload = {
+      name: form.name.value.trim(),
+      workplace: form.workplace.value.trim(),
+      sessions: form.sessions.value.trim(),
+      target: form.target.value.trim(),
+    };
+    try {
+      const r = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || '提交失败，请重试');
+      form.style.display = 'none';
+      document.getElementById('done').style.display = 'block';
+    } catch (ex) {
+      err.textContent = ex.message;
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
